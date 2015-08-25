@@ -35,18 +35,31 @@ namespace Salsa20 {
             SetKey (key, key_size) ;
             SetInitialVector (iv) ;
         }
-        /// <summary>Sets the key.</summary>
-        /// <param name="key">The key to use</param>
+        /**
+         * Sets the key.
+         *
+         * @param key The Key to use
+         */
         void    SetKey (const void *key, size_t key_size) ;
-        /// <summary>Sets the initial vector.</summary>
-        /// <param name="iv">The initial vector</param>
+        /**
+         * Sets the initial vector.
+         *
+         * @param iv The initial vector
+         */
         void    SetInitialVector (uint64_t iv) ;
-        /// <summary>Retrieves current sequence number.</summary>
+        /**
+         * Retrieves current sequence number.
+         */
         uint64_t    GetSequenceNumber () const ;
-        /// <summary>Sets the sequence number.</summary>
-        /// <param name="value">The sequence number</param>
+        /**
+         * Sets the sequence number.
+         *
+         * @param value The sequence number
+         */
         void    SetSequenceNumber (uint64_t value) ;
-        /// <summary>Increments the sequence number by 1.</summary>
+        /**
+         * Increments the sequence number by 1.
+         */
         void    IncrementSequenceNumber () ;
 
         State & Assign (const State &src) ;
@@ -54,46 +67,66 @@ namespace Salsa20 {
             return Assign (src) ;
         }
 
-        /// <summary>Computes the hash value</summary>
-        /// <param name="h">Computed hash value</param>
+        /**
+         * Computes the hash value.
+         *
+         * @param name h Computed hash value.
+         */
         void    ComputeHashValue (hash_value_t &h) const ;
     } ;
 
-    /// <summary>Performs the Salsa20 encryption.</summary>
-    /// <param name="state">The encryption state</param>
-    /// <param name="dst">The output</param>
-    /// <param name="src">The input</param>
-    /// <param name="length">The input length</param>
-    /// <remarks>The Salsa20 cipher is the invertible cipher.</param>
+    /**
+     * Performs Salsa20 encryption.
+     *
+     * @param state The encryption state
+     * @param dst The output
+     * @param src The input
+     * @param length The input length
+     *
+     * @remarks The Salsa20 cipher is the invertible cipher.
+     */
     extern void Apply (Salsa20::State &state, void *dst, const void *src, size_t length) ;
 
-    /// <summary>Performs the Salsa20 encryption.</summary>
-    /// <param name="state">The encryption state</param>
-    /// <param name="dst">The output</param>
-    /// <param name="src">The input</param>
-    /// <param name="length">The input length</param>
-    /// <param name="offset">The start offset</param>
-    /// <remarks>The Salsa20 cipher is the invertible cipher.</param>
+    /**
+     * Performs Salsa20 encryption.
+     *
+     * @param state The encryption state
+     * @param dst The output
+     * @param src The input
+     * @param length The input length
+     * @param offset The start offset
+     *
+     * @remarks The Salsa20 cipher is the invertible cipher.
+     */
     extern void Apply (Salsa20::State &state, void *dst, const void *src, size_t length, uint64_t offset) ;
 
-    /// <summary>Performs the Salsa20 in-place encryption.</summary>
-    /// <param name="state">The encryption state</param>
-    /// <param name="message">The message</param>
-    /// <param name="length">The message length</param>
-    /// <remarks>The Salsa20 cipher is the invertible cipher.</param>
+    /**
+     * Performs the Salsa20 in-place encryption.
+     *
+     * @param state The encryption state
+     * @param message The message
+     * @param length The message length
+     *
+     * @remarks The Salsa20 cipher is the invertible cipher.
+     */
     extern void Apply (Salsa20::State &state, void *message, size_t length) ;
 
-    /// <summary>Performs the Salsa20 in-place encryption.</summary>
-    /// <param name="state">The encryption state</param>
-    /// <param name="message">The message</param>
-    /// <param name="length">The message length</param>
-    /// <param name="offset">The start offset</param>
-    /// <remarks>The Salsa20 cipher is the invertible cipher.</param>
+    /**
+     * Performs the Salsa20 in-place encryption.
+     *
+     * @param state The encryption state
+     * @param message The message
+     * @param length The message length
+     * @param offset The start offset
+     *
+     * @remarks The Salsa20 cipher is the invertible cipher.
+     */
     extern void Apply (Salsa20::State &state, void *message, size_t length, uint64_t offset) ;
 
     inline void Encrypt (Salsa20::State &state, void *dst, const void *src, size_t length) {
         Apply (state, dst, src, length) ;
     }
+
     inline void Encrypt (Salsa20::State &state, void *message, size_t length) {
         Apply (state, message, length) ;
     }

@@ -10,7 +10,7 @@
 #include <memory>
 #include "salsa20.h"
 
-static inline uint32_t  ToInt32 (const void *start) {
+static inline uint32_t ToInt32 (const void *start) {
     const unsigned char *       p = static_cast<const unsigned char *> (start) ;
 
     return ((static_cast<uint32_t> (p [0]) <<  0) |
@@ -209,9 +209,13 @@ void    Salsa20::Apply (Salsa20::State &state, void *dst, const void *src, size_
 }
 
 
-/// <summary>Converts byte offset into the sequence number.</summary>
-/// <param name="offset">Byte offset from the beginning</param>
-/// <returns>Sequence number</returns>
+/**
+ * Converts byte offset into the sequence number.
+ *
+ * @param offset Byte offset from the beginning
+ *
+ * @returns Sequence number
+ */
 static inline uint64_t  OffsetToSequenceNumber (uint64_t offset) {
     return offset / sizeof (Salsa20::hash_value_t) ;
 }
