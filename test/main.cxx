@@ -8,6 +8,11 @@
 #include "common.h"
 #include "md5.h"
 #include "salsa20.h"
+#include <array>
+
+#define CATCH_CONFIG_MAIN
+#include <catch/catch.hpp>
+#include <cppformat/format.h>
 
 static unsigned int to_uint (int a, int b, int c, int d) {
     return (  (static_cast<unsigned int> (a & 0xFF) <<  0)
@@ -65,169 +70,177 @@ public:
         out.setf (flag, std::ios::basefield) ;
         return out ;
     }
-};
+} ;
 
 
-static void     simple_test ()
-{
-    static const unsigned char     key [] = {
-        1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,
+namespace {
+    bool is_equal (const Salsa20::hash_value_t &a, const Salsa20::hash_value_t &b) {
+        for (int_fast32_t i = 0 ; i < sizeof (Salsa20::hash_value_t) ; ++i) {
+            if (a [i] != b [i]) {
+                return false ;
+            }
+        }
+        return true ;
+    }
+
+    std::ostream &  operator << (std::ostream &out, const Salsa20::hash_value_t &value) {
+        for (size_t i = 0 ; i < sizeof (Salsa20::hash_value_t) ; ++i) {
+            fmt::print (out, " {0:3d}") ;
+        }
+        return out ;
+    }
+}
+
+TEST_CASE ("Simple salsa20 test", "[simple]") {
+    auto const  key = std::array<uint8_t, 32> {
+          1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,
         201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216
     } ;
-
-    uint64_t    IV = to_uint (101, 102, 103, 104, 105, 106, 107, 108) ;
-    {
-        Salsa20::State  state (key, sizeof (key), IV) ;
+    auto const  IV = to_uint (101, 102, 103, 104, 105, 106, 107, 108) ;
+    SECTION ("Long key") {
+        const Salsa20::hash_value_t expected = {  69,  37,  68,  39,  41,  15, 107, 193, 255, 139, 122,   6, 170, 233, 217,  98
+                                               ,  89, 144, 182, 106,  21,  51, 200,  65, 239,  49, 222,  34, 215, 114,  40, 126
+                                               , 104, 197,   7, 225, 197, 153,  31,   2, 102,  78,  76, 176,  84, 245, 246, 184
+                                               , 177, 160, 133, 130,   6,  72, 149, 119, 192, 195, 132, 236, 234, 103, 246,  74 } ;
+        Salsa20::State  state (&key [0], key.size (), IV) ;
         state.SetSequenceNumber (to_uint (109, 110, 111, 112, 113, 114, 115, 116)) ;
         Salsa20::hash_value_t   result ;
 
         state.ComputeHashValue (result) ;
-        int col = 0 ;
-        for (int i = 0 ; i < sizeof (result) ; ++i) {
-            std::cout << put_int (static_cast<unsigned int> (result [i]), 3) << ' ' ;
-            if (16 <= ++col) {
-                col = 0 ;
-                std::cout << std::endl ;
-            }
-        }
+
+        REQUIRE (is_equal (result, expected)) ;
     }
-    std::cout << std::endl ;
-    {
-        Salsa20::State  state (key, 16, IV) ;
+    SECTION ("Truncated key") {
+        const Salsa20::hash_value_t expected = {  39, 173,  46, 248,  30, 200,  82,  17,  48, 67, 254, 239,  37,  18,  13, 247
+                                               , 241, 200,  61, 144,  10,  55,  50, 185,   6, 47, 246, 253, 143,  86, 187, 225
+                                               , 134,  85, 110, 246, 161, 163,  43, 235, 231, 94, 171,  51, 145, 214, 112,  29
+                                               ,  14, 232,   5,  16, 151, 140, 183, 141, 171,  9, 122, 181, 104, 182, 177, 193 } ;
+
+        Salsa20::State  state (&key [0], 16, IV) ;
         state.SetSequenceNumber (to_uint (109, 110, 111, 112, 113, 114, 115, 116)) ;
 
         Salsa20::hash_value_t   result ;
 
         state.ComputeHashValue (result) ;
-        int col = 0 ;
-        for (int i = 0 ; i < sizeof (result) ; ++i) {
-            std::cout << put_int (static_cast<unsigned int> (result [i]), 3) << ' ' ;
-            if (16 <= ++col) {
-                col = 0 ;
-                std::cout << std::endl ;
-            }
-        }
+
+        REQUIRE (is_equal (result, expected)) ;
     }
 }
 
-static void     bigtest ()
-{
-    unsigned char m [4096] ;
-    unsigned char c [4096] ;
-    unsigned char d [4096] ;
-    unsigned char k [32] ;
-    unsigned char v [8] ;
+TEST_CASE ("Big salsa20 test", "[bigtest][hide]") {
+    auto message = std::array<uint8_t, 4096> {} ;
+    auto cipher_text = std::array<uint8_t, 4096> {} ;
+    auto deciphered = std::array<uint8_t, 4096> {} ;
+    auto key = std::array<uint8_t, 32> {} ;
+    auto IV = std::array<uint8_t, 8> {} ;
 
-    memset (m, 0, sizeof (m)) ;
-    memset (c, 0, sizeof (c)) ;
-    memset (d, 0, sizeof (d)) ;
-    memset (k, 0, sizeof (k)) ;
-    memset (v, 0, sizeof (v)) ;
+    message.fill (0) ;
+    cipher_text.fill (0) ;
+    deciphered.fill (0) ;
+    key.fill (0) ;
+    IV.fill (0) ;
 
-    Salsa20::State      state ;
+    Salsa20::State  state ;
 
-    for (int loop = 0 ; loop < 10 ; ++loop) {
-        MD5Generator    md5 ;
+    SECTION ("Construct state") {
+        auto const testvector = std::array<std::string, 10>
+                { std::string { "e2d22467015c0ffb0adc5fac0ee88ccf8d467a7f07ab53d4efeac8da47fd833e" }
+                , std::string { "42ace6ef6e8dbfa909114e7b3ba45ba8fb8a1ee1215a5cf7099c3d7d54ea7dd2" }
+                , std::string { "1db38ebb933ef1969b1f28d9f897fce505d7dc51f5480a37692c3af33f5af678" }
+                , std::string { "96858517a69b888de857855809e12779b1d664b624a833b5557c6f2c5d86c890" }
+                , std::string { "b6dde6c97a15a8d97440e39d191288ff51adbc7e97b8d2ccb128a47df0800202" }
+                , std::string { "7b057f22ee78a6496310686ddc7417824eedd94d4be1ebe8d1166cc23fe6123a" }
+                , std::string { "4eea51772404b0fb77ce3f37f19a19f2e758f3aa672f4850c936a7b8cd4a5230" }
+                , std::string { "13cdd99b631fdc5c6355985eed37507b015d07236b41a3ab1d04d1721e243b48" }
+                , std::string { "247b71ca788aea9c0aae22cc7988d42f5efe3f24782b9481a61620719c7a3c9b" }
+                , std::string { "1c47c12a40457949d723b86e97a9f2989344ea7bbad6be8a24b0d3486aa954e1" } } ;
 
-        for (int bytes = 0 ; bytes <= sizeof (m) ; ++bytes) {
+        for (int loop = 0 ; loop < 10 ; ++loop) {
+            MD5Generator    md5 ;
 
-            if (loop & 1) {
-                state.SetKey (k, 32) ;
-            }
-            else {
-                state.SetKey (k, 16) ;
-            }
-            state.SetInitialVector (to_uint (v [0], v [1],  v [2],  v[3], v [4], v [5], v [6], v [7])) ;
-            Salsa20::Encrypt (state, c, m, bytes) ;
-            md5.update (c, bytes) ;
-            state.SetInitialVector (to_uint (v [0], v [1],  v [2],  v[3], v [4], v [5], v [6], v [7])) ;
-            Salsa20::Decrypt (state, d, c, bytes) ;
-            for (int i = 0 ; i < bytes ; ++i) {
-                if (d [i] != m [i]) {
-                    std::cout << "Mismatch at position " << put_int (i, 4) << "/" << put_int (bytes, 4) << std::endl ;
-                }
-            }
-            switch (bytes % 3) {
-            case 0:
-                for (int i = 0 ; (i < bytes) && (i < sizeof (k)) ; ++i) {
-                    k [i] ^= c [i] ;
-                }
-                break ;
-            case 1:
-                for (int i = 0 ; (i < bytes) && (i <  sizeof (v)) ; ++i) {
-                    v [i] ^= c [i] ;
-                }
-                break ;
-            case 2:
+            for (int bytes = 0 ; bytes <= message.size () ; ++bytes) {
+                state.SetKey (key.data (), ((loop & 1) != 0) ? 32 : 16) ;
+
+                state.SetInitialVector (to_uint (IV[0], IV[1],  IV[2],  IV[3], IV[4], IV[5], IV[6], IV[7])) ;
+                Salsa20::Encrypt (state, cipher_text.data (), message.data (), bytes) ;
+                md5.update (cipher_text.data (), bytes) ;
+                state.SetInitialVector (to_uint (IV[0], IV[1],  IV[2],  IV[3], IV[4], IV[5], IV[6], IV[7])) ;
+                Salsa20::Decrypt (state, deciphered.data (), cipher_text.data (), bytes) ;
+
                 for (int i = 0 ; i < bytes ; ++i) {
-                    m [i] = c [i] ;
+                    if (deciphered[i] != message[i]) {
+                        fmt::print (std::cerr, "Mismatched at position {0:4d}/{1:4d}\n", i, bytes) ;
+                    }
                 }
-                break ;
+                switch (bytes % 3) {
+                case 0:
+                    for (int i = 0 ; i < std::min<int> (bytes, key.size ()) ; ++i) {
+                        key[i] ^= cipher_text[i] ;
+                    }
+                    break ;
+                case 1:
+                    for (int i = 0 ; i < std::min<int> (bytes, IV.size ()) ; ++i) {
+                        IV[i] ^= cipher_text[i] ;
+                    }
+                    break ;
+                case 2:
+                    for (int i = 0 ; i < bytes ; ++i) {
+                        message[i] = cipher_text[i] ;
+                    }
+                    break ;
+                }
             }
-        }
-        MD5Generator::Digest    digest (md5.finalize ()) ;
+            MD5Generator::Digest    digest { md5.finalize () } ;
 
-        for (int i = 0 ; i < 16 ; ++i) {
-            std::cout << put_hex (digest [i], 2) ;
-        }
-        for (int i = 0 ; i < 16 ; ++i) {
-            std::cout << put_hex (k [16 + i], 2) ;
-        }
-        std::cout << std::endl ;
-    }
-
-    {
-        static const int     MAX_LOOP = 134217728 ;
-        //static const int        MAX_LOOP = 100000 ;
-
-        MD5Generator    md5 ;
-        for (int loop = 0 ; loop < MAX_LOOP ; ++loop) {
-            if ((loop % 100000) == 0) {
-                std::cerr << '.' << std::flush ;
+            std::stringstream   sout ;
+            for (int i = 0 ; i < 16 ; ++i) {
+                fmt::print (sout, "{0:02x}", digest [i]) ;
             }
-            Salsa20::Encrypt (state, c, sizeof (c)) ;
-            md5.update (c, sizeof (c)) ;
+            for (int i = 0 ; i < 16 ; ++i) {
+                fmt::print (sout, "{0:02x}", key[16 + i]) ;
+            }
+            REQUIRE (sout.str () == testvector[loop]) ;
         }
-        MD5Generator::Digest    digest (md5.finalize ()) ;
-        std::cerr << std::endl ;
-        for (int i = 0 ; i < 16 ; ++i) {
-            std::cout << put_hex (digest [i], 2) ;
+        SECTION ("Long test") {
+            static const int     MAX_LOOP = 134217728 ;
+
+            MD5Generator    md5 ;
+            for (int loop = 0 ; loop < MAX_LOOP ; ++loop) {
+                if ((loop % 100000) == 0) {
+                    std::cerr << '.' << std::flush ;
+                }
+                Salsa20::Encrypt (state, cipher_text.data (), cipher_text.size ()) ;
+                md5.update (cipher_text.data (), cipher_text.size ()) ;
+            }
+            MD5Generator::Digest    digest { md5.finalize () } ;
+
+            std::stringstream   sout ;
+            for (int i = 0 ; i < 16 ; ++i) {
+                fmt::print (sout, "{0:02x}", digest [i]) ;
+            }
+            REQUIRE (sout.str () == "dcb0b1043c425ab0eb97a5f30410a685") ;
         }
-        std::cout << std::endl ;
     }
 }
 
-static void     partial_test ()
-{
-    unsigned char       expected [4096] ;
-    unsigned char       actual [4096] ;
+TEST_CASE ("Incremental update", "[incremental update]") {
+    auto expected = std::array<uint8_t, 4096> {} ;
+    auto actual = std::array<uint8_t, 4096> {} ;
 
-    ::memset (expected, 0, sizeof (expected)) ;
-    ::memset (actual  , 0, sizeof (actual)) ;
-    std::string key_string ("No one could maintain the public order.") ;
-    Salsa20::State      state_0 (key_string.c_str (), key_string.size (), 0x87654321) ;
-    Salsa20::State      state_1 (state_0) ;
-    Salsa20::Apply (state_0, expected, sizeof (expected)) ;
+    expected.fill (0) ;
+    actual.fill (0) ;
+    std::string key_string { "No one could maintain the public order." } ;
+    Salsa20::State  state_0 { key_string.c_str (), key_string.size (), 0x87654321u } ;
+    Salsa20::State  state_1 { state_0 } ;
 
-    for (int i = 0 ; i < sizeof (actual) ; i += 7) {
-        Salsa20::Apply (state_1, &actual [i], std::min<size_t> (7, static_cast<int> (sizeof (actual) - i)), i) ;
+    Salsa20::Apply (state_0, expected.data (), expected.size ()) ;
+
+    for (int i = 0 ; i < actual.size () ; i += 7) {
+        Salsa20::Apply (state_1, &actual [i], std::min<size_t> (7, actual.size () - i), i) ;
     }
-    std::cout << "Partial test: " ;
-    if (::memcmp (expected, actual, sizeof (expected)) != 0) {
-        std::cout << "Failed." << std::endl ;
-    }
-    else {
-        std::cout << "Success." << std::endl ;
-    }
+    REQUIRE (::memcmp (expected.data (), actual.data (), actual.size ()) == 0) ;
 }
 
-int     main (int argc, char **argv)
-{
-    partial_test () ;
-    simple_test () ;
-    bigtest () ;
-    return 0 ;
-}
 /*
  * [END of FILE]
  */
