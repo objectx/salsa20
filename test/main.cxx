@@ -3,31 +3,28 @@
  *
  * AUTHOR(S): objectx
  *
- * $Id: main.cxx 2563 2007-11-22 12:26:29Z objectx $
  */
 
 #include "common.h"
 #include "md5.h"
 #include "salsa20.h"
 
-static unsigned int     to_uint (int a, int b, int c, int d)
-{
-    return ((static_cast<unsigned int> (a & 0xFF) <<  0) |
-            (static_cast<unsigned int> (b & 0xFF) <<  8) |
-            (static_cast<unsigned int> (c & 0xFF) << 16) |
-            (static_cast<unsigned int> (d & 0xFF) << 24)) ;
+static unsigned int to_uint (int a, int b, int c, int d) {
+    return (  (static_cast<unsigned int> (a & 0xFF) <<  0)
+            | (static_cast<unsigned int> (b & 0xFF) <<  8)
+            | (static_cast<unsigned int> (c & 0xFF) << 16)
+            | (static_cast<unsigned int> (d & 0xFF) << 24)) ;
 }
 
-static uint64_t to_uint (int a, int b, int c, int d, int e, int f, int g, int h)
-{
-    return ((static_cast<uint64_t> (a & 0xFF) <<  0) |
-            (static_cast<uint64_t> (b & 0xFF) <<  8) |
-            (static_cast<uint64_t> (c & 0xFF) << 16) |
-            (static_cast<uint64_t> (d & 0xFF) << 24) |
-            (static_cast<uint64_t> (e & 0xFF) << 32) |
-            (static_cast<uint64_t> (f & 0xFF) << 40) |
-            (static_cast<uint64_t> (g & 0xFF) << 48) |
-            (static_cast<uint64_t> (h & 0xFF) << 56)) ;
+static uint64_t to_uint (int a, int b, int c, int d, int e, int f, int g, int h) {
+    return (  (static_cast<uint64_t> (a & 0xFF) <<  0)
+            | (static_cast<uint64_t> (b & 0xFF) <<  8)
+            | (static_cast<uint64_t> (c & 0xFF) << 16)
+            | (static_cast<uint64_t> (d & 0xFF) << 24)
+            | (static_cast<uint64_t> (e & 0xFF) << 32)
+            | (static_cast<uint64_t> (f & 0xFF) << 40)
+            | (static_cast<uint64_t> (g & 0xFF) << 48)
+            | (static_cast<uint64_t> (h & 0xFF) << 56)) ;
 }
 
 
@@ -213,7 +210,7 @@ static void     partial_test ()
     Salsa20::Apply (state_0, expected, sizeof (expected)) ;
 
     for (int i = 0 ; i < sizeof (actual) ; i += 7) {
-        Salsa20::Apply (state_1, &actual [i], std::min (7, static_cast<int> (sizeof (actual) - i)), i) ;
+        Salsa20::Apply (state_1, &actual [i], std::min<size_t> (7, static_cast<int> (sizeof (actual) - i)), i) ;
     }
     std::cout << "Partial test: " ;
     if (::memcmp (expected, actual, sizeof (expected)) != 0) {
@@ -232,7 +229,5 @@ int     main (int argc, char **argv)
     return 0 ;
 }
 /*
- * $LastChangedBy: objectx $
- * $LastChangedRevision: 2563 $
- * $HeadURL: http://svn.polyphony.scei.co.jp/developer/objectx/trunk/workspace/VS2005/Native/Salsa20/test_salsa20/main.cxx $
+ * [END of FILE]
  */

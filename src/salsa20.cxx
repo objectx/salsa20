@@ -13,10 +13,10 @@
 static inline uint32_t ToInt32 (const void *start) {
     const unsigned char *       p = static_cast<const unsigned char *> (start) ;
 
-    return ((static_cast<uint32_t> (p [0]) <<  0) |
-            (static_cast<uint32_t> (p [1]) <<  8) |
-            (static_cast<uint32_t> (p [2]) << 16) |
-            (static_cast<uint32_t> (p [3]) << 24)) ;
+    return (  (static_cast<uint32_t> (p [0]) <<  0)
+            | (static_cast<uint32_t> (p [1]) <<  8)
+            | (static_cast<uint32_t> (p [2]) << 16)
+            | (static_cast<uint32_t> (p [3]) << 24)) ;
 }
 
 static inline uint32_t  rot (uint32_t x, size_t n) {
