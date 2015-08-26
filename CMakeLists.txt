@@ -12,6 +12,7 @@ set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 include (EnableCatch)
 include (EnableCppFormat)
+include (FindPythonInterp)
 
 add_subdirectory (src)
 add_subdirectory (test)

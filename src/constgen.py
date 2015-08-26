@@ -84,7 +84,10 @@ def main ():
         generate (output, convert ("expand 32-byte k"), "State::sigma_")
         generate (output, convert ("expand 16-byte k"), "State::tau_")
         output.write ("}\t/* End of namespace [Salsa20] */\n")
-        output.write ("/* $" "Revision" "$ */\n")
+        output.write ("/*")
+        output.write (" * [END of FILE]")
+        output.write (" */")
+
     if not options.output:
         gen (sys.stdout)
     else:
