@@ -13,7 +13,7 @@
 
 namespace Salsa20 {
 
-    typedef unsigned char       hash_value_t [64] ;
+    typedef uint8_t hash_value_t [64] ;
 
     /// <summary>Holds the state for Salsa20.</summary>
     class State {
