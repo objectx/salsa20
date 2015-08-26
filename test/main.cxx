@@ -8,6 +8,8 @@
 #include "common.h"
 #include "md5.h"
 #include "salsa20.h"
+#define CATCH_CONFIG_MAIN
+#include <catch/catch.hpp>
 
 static unsigned int to_uint (int a, int b, int c, int d) {
     return (  (static_cast<unsigned int> (a & 0xFF) <<  0)
@@ -221,13 +223,6 @@ static void     partial_test ()
     }
 }
 
-int     main (int argc, char **argv)
-{
-    partial_test () ;
-    simple_test () ;
-    bigtest () ;
-    return 0 ;
-}
 /*
  * [END of FILE]
  */
