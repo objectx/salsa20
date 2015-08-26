@@ -10,10 +10,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <array>
 
 namespace Salsa20 {
 
-    typedef uint8_t hash_value_t [64] ;
+    using hash_value_t = std::array<uint8_t, 64> ;
 
     /// <summary>Holds the state for Salsa20.</summary>
     class State {
@@ -72,7 +73,7 @@ namespace Salsa20 {
          *
          * @param name h Computed hash value.
          */
-        void    ComputeHashValue (hash_value_t &h) const ;
+        hash_value_t    ComputeHashValue () const ;
     } ;
 
     /**

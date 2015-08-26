@@ -11,7 +11,7 @@
 #include "salsa20.h"
 
 static inline uint32_t ToInt32 (const void *start) {
-    const unsigned char *       p = static_cast<const unsigned char *> (start) ;
+    auto p = static_cast<const uint8_t *> (start) ;
 
     return (  (static_cast<uint32_t> (p [0]) <<  0)
             | (static_cast<uint32_t> (p [1]) <<  8)
@@ -35,14 +35,14 @@ Salsa20::State::State () {
 
 void    Salsa20::State::SetKey (const void *key, size_t key_size) {
 
-    unsigned char       K [32] ;
+    std::array<uint8_t, 32> K ;
 
-    if (sizeof (K) < key_size) {
-        key_size = sizeof (K) ;
+    if (K.size () < key_size) {
+        key_size = K.size () ;
     }
 
-    ::memset (K, 0, sizeof (K)) ;
-    ::memcpy (K, key, key_size) ;
+    K.fill (0) ;
+    ::memcpy (&K [0], key, key_size) ;
 
     const uint32_t      mask = obfuscateMask_ ;
 
@@ -99,8 +99,8 @@ void    Salsa20::State::SetInitialVector (uint64_t iv) {
 }
 
 uint64_t        Salsa20::State::GetSequenceNumber () const {
-    return ((static_cast<uint64_t> (state_ [8]) <<  0) |
-            (static_cast<uint64_t> (state_ [9]) << 32)) ;
+    return (  (static_cast<uint64_t> (state_ [8]) <<  0)
+            | (static_cast<uint64_t> (state_ [9]) << 32)) ;
 }
 
 void    Salsa20::State::SetSequenceNumber (uint64_t value) {
@@ -120,7 +120,7 @@ Salsa20::State &        Salsa20::State::Assign (const Salsa20::State &src) {
     return *this ;
 }
 
-void    Salsa20::State::ComputeHashValue (Salsa20::hash_value_t &h) const {
+Salsa20::hash_value_t   Salsa20::State::ComputeHashValue () const {
     const int   STATE_SIZE = sizeof (state_) / sizeof (state_ [0]) ;
 
     const int   NUM_ROUNDS = 10 ;
@@ -171,40 +171,41 @@ void    Salsa20::State::ComputeHashValue (Salsa20::hash_value_t &h) const {
         x[14] ^= rot (x[13] + x[12], 13) ;
         x[15] ^= rot (x[14] + x[13], 18) ;
     }
+    hash_value_t    result ;
     for (int i = 0 ; i < STATE_SIZE ; ++i) {
         uint32_t        v = x [i] + state_ [i] ;
 
-        h [4 * i + 0] = static_cast<unsigned char> (v >>  0) ;
-        h [4 * i + 1] = static_cast<unsigned char> (v >>  8) ;
-        h [4 * i + 2] = static_cast<unsigned char> (v >> 16) ;
-        h [4 * i + 3] = static_cast<unsigned char> (v >> 24) ;
+        result [4 * i + 0] = static_cast<unsigned char> (v >>  0) ;
+        result [4 * i + 1] = static_cast<unsigned char> (v >>  8) ;
+        result [4 * i + 2] = static_cast<unsigned char> (v >> 16) ;
+        result [4 * i + 3] = static_cast<unsigned char> (v >> 24) ;
     }
+    return result ;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void    Salsa20::Apply (Salsa20::State &state, void *dst, const void *src, size_t length) {
-    hash_value_t        hash ;
 
-    const unsigned char *       p = static_cast<const unsigned char *> (src) ;
-    unsigned char *             q = static_cast<unsigned char *> (dst) ;
+    auto    p = static_cast<const uint8_t *> (src) ;
+    auto    q = static_cast<uint8_t *> (dst) ;
 
     while (true) {
-        state.ComputeHashValue (hash) ;
+        auto const hash = state.ComputeHashValue () ;
         state.IncrementSequenceNumber () ;
 
-        if (length <= sizeof (hash)) {
+        if (length <= hash.size ()) {
             for (size_t i = 0 ; i < length ; ++i) {
                 q [i] = p [i] ^ hash [i] ;
             }
             return ;
         }
-        for (size_t i = 0 ; i < sizeof (hash) ; ++i) {
+        for (size_t i = 0 ; i < hash.size () ; ++i) {
             q [i] = p [i] ^ hash [i] ;
         }
-        p += sizeof (hash) ;
-        q += sizeof (hash) ;
-        length -= sizeof (hash) ;
+        p += hash.size () ;
+        q += hash.size () ;
+        length -= hash.size () ;
     }
 }
 
@@ -217,68 +218,64 @@ void    Salsa20::Apply (Salsa20::State &state, void *dst, const void *src, size_
  * @returns Sequence number
  */
 static inline uint64_t  OffsetToSequenceNumber (uint64_t offset) {
-    return offset / sizeof (Salsa20::hash_value_t) ;
+    return offset / std::tuple_size <Salsa20::hash_value_t>::value ;
 }
 
 void    Salsa20::Apply (Salsa20::State &state, void *dst, const void *src, size_t length, uint64_t offset) {
-    hash_value_t        hash ;
-
-    const unsigned char *       p = static_cast<const unsigned char *> (src) ;
-    unsigned char *             q = static_cast<unsigned char *> (dst) ;
-    const unsigned char *       end = p + length ;
+    auto    p = static_cast<const uint8_t *> (src) ;
+    auto    q = static_cast<uint8_t *> (dst) ;
+    auto    end = p + length ;
 
     state.SetSequenceNumber (OffsetToSequenceNumber (offset)) ;
-    state.ComputeHashValue (hash) ;
+    auto hash = state.ComputeHashValue () ;
 
-    size_t      i = static_cast<size_t> (offset % sizeof (hash)) ;
+    size_t      i = static_cast<size_t> (offset % hash.size ()) ;
     while (p < end) {
         *q++ = *p++ ^ hash [i++] ;
-        if (sizeof (hash) <= i) {
+        if (hash.size () <= i) {
             state.IncrementSequenceNumber () ;
-            state.ComputeHashValue (hash) ;
+            hash = state.ComputeHashValue () ;
             i = 0 ;
         }
     }
 }
 
 void    Salsa20::Apply (Salsa20::State &state, void *message, size_t length) {
-    hash_value_t        hash ;
 
-    unsigned char *     p = static_cast<unsigned char *> (message) ;
+    auto    p = static_cast<uint8_t *> (message) ;
 
     while (true) {
-        state.ComputeHashValue (hash) ;
+        auto hash = state.ComputeHashValue () ;
         state.IncrementSequenceNumber () ;
 
-        if (length <= sizeof (hash)) {
+        if (length <= hash.size ()) {
             for (size_t i = 0 ; i < length ; ++i) {
                 p [i] ^= hash [i] ;
             }
             return ;
         }
-        for (size_t i = 0 ; i < sizeof (hash) ; ++i) {
+        for (size_t i = 0 ; i < hash.size () ; ++i) {
             p [i] ^= hash [i] ;
         }
-        p += sizeof (hash) ;
-        length -= sizeof (hash) ;
+        p += hash.size () ;
+        length -= hash.size () ;
     }
 }
 
 void    Salsa20::Apply (Salsa20::State &state, void *message, size_t length, uint64_t offset) {
-    hash_value_t        hash ;
 
-    unsigned char *     p = static_cast<unsigned char *> (message) ;
-    unsigned char *     end = p + length ;
+    auto    p = static_cast<uint8_t *> (message) ;
+    auto    end = p + length ;
 
     state.SetSequenceNumber (OffsetToSequenceNumber (offset)) ;
-    state.ComputeHashValue (hash) ;
+    auto hash = state.ComputeHashValue () ;
 
-    size_t      i = static_cast<size_t> (offset % sizeof (hash)) ;
+    size_t      i = static_cast<size_t> (offset % hash.size ()) ;
     while (p < end) {
         *p++ ^= hash [i++] ;
         if (sizeof (hash) <= i) {
             state.IncrementSequenceNumber () ;
-            state.ComputeHashValue (hash) ;
+            hash = state.ComputeHashValue () ;
             i = 0 ;
         }
     }

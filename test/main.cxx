@@ -14,7 +14,7 @@
 #include <catch/catch.hpp>
 #include <cppformat/format.h>
 
-static unsigned int to_uint (int a, int b, int c, int d) {
+static uint32_t to_uint (int a, int b, int c, int d) {
     return (  (static_cast<unsigned int> (a & 0xFF) <<  0)
             | (static_cast<unsigned int> (b & 0xFF) <<  8)
             | (static_cast<unsigned int> (c & 0xFF) << 16)
@@ -33,49 +33,9 @@ static uint64_t to_uint (int a, int b, int c, int d, int e, int f, int g, int h)
 }
 
 
-class put_int {
-private:
-    int value_ ;
-    int width_ ;
-public:
-    put_int (int value, int width = 0) :
-        value_ (value), width_ (width) {
-        /* NO-OP */
-    }
-    friend std::ostream & operator << (std::ostream &out, const put_int &arg) {
-        std::ios::fmtflags      flag = out.setf (std::ios::dec, std::ios::basefield) ;
-        out.width (arg.width_) ;
-        out << arg.value_ ;
-        out.setf (flag, std::ios::basefield) ;
-        return out ;
-    }
-} ;
-
-
-class put_hex {
-private:
-    int value_ ;
-    int width_ ;
-public:
-    put_hex (int value, int width = 0) :
-        value_ (value), width_ (width) {
-        /* NO-OP */
-    }
-    friend std::ostream & operator << (std::ostream &out, const put_hex &arg) {
-        std::ios::fmtflags      flag = out.setf (std::ios::hex, std::ios::basefield) ;
-        char    fill = out.fill ('0') ;
-        out.width (arg.width_) ;
-        out << arg.value_ ;
-        out.fill (fill) ;
-        out.setf (flag, std::ios::basefield) ;
-        return out ;
-    }
-} ;
-
-
 namespace {
-    bool is_equal (const Salsa20::hash_value_t &a, const Salsa20::hash_value_t &b) {
-        for (int_fast32_t i = 0 ; i < sizeof (Salsa20::hash_value_t) ; ++i) {
+    bool operator == (const Salsa20::hash_value_t &a, const Salsa20::hash_value_t &b) {
+        for (int_fast32_t i = 0 ; i < a.size () ; ++i) {
             if (a [i] != b [i]) {
                 return false ;
             }
@@ -83,12 +43,25 @@ namespace {
         return true ;
     }
 
-    std::ostream &  operator << (std::ostream &out, const Salsa20::hash_value_t &value) {
-        for (size_t i = 0 ; i < sizeof (Salsa20::hash_value_t) ; ++i) {
-            fmt::print (out, " {0:3d}") ;
-        }
-        return out ;
+}
+
+std::ostream &  operator << (std::ostream &out, const Salsa20::hash_value_t &value) {
+    for (size_t i = 0 ; i < value.size () ; ++i) {
+        fmt::print (out, " {0:3d}", value [i]) ;
     }
+    return out ;
+}
+
+namespace Catch {
+    template <> struct StringMaker<Salsa20::hash_value_t> {
+        static std::string convert (Salsa20::hash_value_t const& value ) {
+            std::stringstream s ;
+            for (size_t i = 0 ; i < value.size () ; ++i) {
+                fmt::print (s, " {0:3d}", value [i]) ;
+            }
+            return s.str () ;
+        }
+    };
 }
 
 TEST_CASE ("Simple salsa20 test", "[simple]") {
@@ -98,32 +71,28 @@ TEST_CASE ("Simple salsa20 test", "[simple]") {
     } ;
     auto const  IV = to_uint (101, 102, 103, 104, 105, 106, 107, 108) ;
     SECTION ("Long key") {
-        const Salsa20::hash_value_t expected = {  69,  37,  68,  39,  41,  15, 107, 193, 255, 139, 122,   6, 170, 233, 217,  98
-                                               ,  89, 144, 182, 106,  21,  51, 200,  65, 239,  49, 222,  34, 215, 114,  40, 126
-                                               , 104, 197,   7, 225, 197, 153,  31,   2, 102,  78,  76, 176,  84, 245, 246, 184
-                                               , 177, 160, 133, 130,   6,  72, 149, 119, 192, 195, 132, 236, 234, 103, 246,  74 } ;
+        const Salsa20::hash_value_t expected {  69,  37,  68,  39,  41,  15, 107, 193, 255, 139, 122,   6, 170, 233, 217,  98
+                                             ,  89, 144, 182, 106,  21,  51, 200,  65, 239,  49, 222,  34, 215, 114,  40, 126
+                                             , 104, 197,   7, 225, 197, 153,  31,   2, 102,  78,  76, 176,  84, 245, 246, 184
+                                             , 177, 160, 133, 130,   6,  72, 149, 119, 192, 195, 132, 236, 234, 103, 246,  74 } ;
         Salsa20::State  state (&key [0], key.size (), IV) ;
         state.SetSequenceNumber (to_uint (109, 110, 111, 112, 113, 114, 115, 116)) ;
-        Salsa20::hash_value_t   result ;
+        auto const result = state.ComputeHashValue () ;
 
-        state.ComputeHashValue (result) ;
-
-        REQUIRE (is_equal (result, expected)) ;
+        REQUIRE (result == expected) ;
     }
     SECTION ("Truncated key") {
-        const Salsa20::hash_value_t expected = {  39, 173,  46, 248,  30, 200,  82,  17,  48, 67, 254, 239,  37,  18,  13, 247
-                                               , 241, 200,  61, 144,  10,  55,  50, 185,   6, 47, 246, 253, 143,  86, 187, 225
-                                               , 134,  85, 110, 246, 161, 163,  43, 235, 231, 94, 171,  51, 145, 214, 112,  29
-                                               ,  14, 232,   5,  16, 151, 140, 183, 141, 171,  9, 122, 181, 104, 182, 177, 193 } ;
+        const Salsa20::hash_value_t expected {  39, 173,  46, 248,  30, 200,  82,  17,  48, 67, 254, 239,  37,  18,  13, 247
+                                             , 241, 200,  61, 144,  10,  55,  50, 185,   6, 47, 246, 253, 143,  86, 187, 225
+                                             , 134,  85, 110, 246, 161, 163,  43, 235, 231, 94, 171,  51, 145, 214, 112,  29
+                                             ,  14, 232,   5,  16, 151, 140, 183, 141, 171,  9, 122, 181, 104, 182, 177, 193 } ;
 
         Salsa20::State  state (&key [0], 16, IV) ;
         state.SetSequenceNumber (to_uint (109, 110, 111, 112, 113, 114, 115, 116)) ;
 
-        Salsa20::hash_value_t   result ;
+        auto const result = state.ComputeHashValue () ;
 
-        state.ComputeHashValue (result) ;
-
-        REQUIRE (is_equal (result, expected)) ;
+        REQUIRE (result == expected) ;
     }
 }
 

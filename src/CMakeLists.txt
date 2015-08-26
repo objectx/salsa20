@@ -12,3 +12,4 @@ add_custom_command (OUTPUT ${CONSTANT_TABLE}
 
 add_library (salsa20 ${SOURCE_FILES})
 target_include_directories (salsa20 PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/include)
+target_compile_features (salsa20 PUBLIC cxx_auto_type cxx_alias_templates)
