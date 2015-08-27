@@ -190,22 +190,25 @@ void    Salsa20::Apply (Salsa20::State &state, void *dst, const void *src, size_
     auto    p = static_cast<const uint8_t *> (src) ;
     auto    q = static_cast<uint8_t *> (dst) ;
 
-    while (true) {
+    size_t  cnt = length / std::tuple_size<hash_value_t>::value ;
+    for (size_t i = 0 ; i < cnt ; ++i) {
         auto const hash = state.ComputeHashValue () ;
         state.IncrementSequenceNumber () ;
 
-        if (length <= hash.size ()) {
-            for (size_t i = 0 ; i < length ; ++i) {
-                q [i] = p [i] ^ hash [i] ;
-            }
-            return ;
-        }
         for (size_t i = 0 ; i < hash.size () ; ++i) {
             q [i] = p [i] ^ hash [i] ;
         }
         p += hash.size () ;
         q += hash.size () ;
-        length -= hash.size () ;
+    }
+    size_t remain = length - (cnt * std::tuple_size<hash_value_t>::value) ;
+    if (0 < remain) {
+        auto const hash = state.ComputeHashValue () ;
+        state.IncrementSequenceNumber () ;
+
+        for (size_t i = 0 ; i < remain ; ++i) {
+            q [i] = p [i] ^ hash [i] ;
+        }
     }
 }
 
@@ -244,21 +247,24 @@ void    Salsa20::Apply (Salsa20::State &state, void *message, size_t length) {
 
     auto    p = static_cast<uint8_t *> (message) ;
 
-    while (true) {
+    size_t  cnt = length / std::tuple_size<hash_value_t>::value ;
+    for (int i = 0 ; i < cnt ; ++i) {
         auto hash = state.ComputeHashValue () ;
         state.IncrementSequenceNumber () ;
 
-        if (length <= hash.size ()) {
-            for (size_t i = 0 ; i < length ; ++i) {
-                p [i] ^= hash [i] ;
-            }
-            return ;
-        }
         for (size_t i = 0 ; i < hash.size () ; ++i) {
             p [i] ^= hash [i] ;
         }
         p += hash.size () ;
-        length -= hash.size () ;
+    }
+    size_t remain = length - (cnt * std::tuple_size<hash_value_t>::value) ;
+    if (0 < remain) {
+        auto const hash = state.ComputeHashValue () ;
+        state.IncrementSequenceNumber () ;
+
+        for (size_t i = 0 ; i < remain ; ++i) {
+            p [i] ^= hash [i] ;
+        }
     }
 }
 
