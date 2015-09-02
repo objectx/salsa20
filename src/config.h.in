@@ -1,0 +1,16 @@
+/*
+ * config.h: Configurations
+ */
+#pragma once
+
+#ifndef config_h__E101359994154921817A3123BC2847B6
+#define config_h__E101359994154921817A3123BC2847B6     1
+
+#cmakedefine TARGET_LITTLE_ENDIAN       @TARGET_LITTLE_ENDIAN@
+#cmakedefine TARGET_ALLOWS_UNALIGNED_ACCESS
+#cmakedefine HAVE_SSE3
+
+#endif  /* config_h__E101359994154921817A3123BC2847B6 */
+/*
+ * [END of FILE]
+ */
