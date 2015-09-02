@@ -10,13 +10,25 @@
 #include <memory>
 #include "salsa20.h"
 
+#if HAVE_CONFIG_H
+#   include "config.h"
+#endif
+
+#ifdef HAVE_SSE3
+#   include <xmmintrin.h>
+#endif
+
 static inline uint32_t ToInt32 (const void *start) {
+#ifdef TARGET_ALLOWS_UNALIGNED_ACCESS
+    return *(static_cast<const uint32_t *> (start)) ;
+#else
     auto p = static_cast<const uint8_t *> (start) ;
 
     return (  (static_cast<uint32_t> (p [0]) <<  0)
             | (static_cast<uint32_t> (p [1]) <<  8)
             | (static_cast<uint32_t> (p [2]) << 16)
             | (static_cast<uint32_t> (p [3]) << 24)) ;
+#endif
 }
 
 static inline uint32_t  rot (uint32_t x, size_t n) {
@@ -27,6 +39,13 @@ static inline uint32_t  rot (uint32_t x, size_t n) {
 #endif
 }
 
+#ifdef HAVE_SSE3
+static inline __m128i   vrot (__m128i v, int cnt) {
+    __m128i t0 = _mm_slli_epi32 (v, cnt) ;
+    __m128i t1 = _mm_srli_epi32 (v, 32 - cnt) ;
+    return _mm_or_si128 (t0, t1) ;
+}
+#endif
 /* ------------------------------------------------------------------------ */
 
 Salsa20::State::State () {
@@ -109,10 +128,11 @@ void    Salsa20::State::SetSequenceNumber (uint64_t value) {
 }
 
 void    Salsa20::State::IncrementSequenceNumber () {
-    uint32_t    val = (state_ [8] += 1) ;
-    if (val == 0) {
-        state_ [9] += 1 ;
-    }
+    uint64_t tmp = (  (static_cast<uint64_t> (state_ [8]) <<  0)
+                    | (static_cast<uint64_t> (state_ [9]) << 32)) ;
+    ++tmp ;
+    state_ [8] = static_cast<uint32_t> (tmp >>  0) ;
+    state_ [9] = static_cast<uint32_t> (tmp >> 32) ;
 }
 
 Salsa20::State &        Salsa20::State::Assign (const Salsa20::State &src) {
@@ -120,11 +140,112 @@ Salsa20::State &        Salsa20::State::Assign (const Salsa20::State &src) {
     return *this ;
 }
 
+#define SWAP_(a_, b_)   do {        \
+        __m128i     t_ = (a_) ;     \
+        (a_) = (b_) ;               \
+        (b_) = t_ ;                 \
+    } while (false)
+
+#define TRANSPOSE_(V0_, V1_, V2_, V3_) do {                 \
+        __m128i t0_ = _mm_unpacklo_epi32 ((V0_), (V1_)) ;   \
+        __m128i t1_ = _mm_unpacklo_epi32 ((V2_), (V3_)) ;   \
+        __m128i t2_ = _mm_unpackhi_epi32 ((V0_), (V1_)) ;   \
+        __m128i t3_ = _mm_unpackhi_epi32 ((V2_), (V3_)) ;   \
+        (V0_) = _mm_unpacklo_epi64 (t0_, t1_) ;             \
+        (V1_) = _mm_unpackhi_epi64 (t0_, t1_) ;             \
+        (V2_) = _mm_unpacklo_epi64 (t2_, t3_) ;             \
+        (V3_) = _mm_unpackhi_epi64 (t2_, t3_) ;             \
+    } while (false)
+
 Salsa20::hash_value_t   Salsa20::State::ComputeHashValue () const {
     const int   STATE_SIZE = sizeof (state_) / sizeof (state_ [0]) ;
 
     const int   NUM_ROUNDS = 10 ;
 
+#ifdef HAVE_SSE3
+    __m128i     v0orig = _mm_loadu_si128 ((const __m128i *)&state_ [ 0]) ;
+    __m128i     v1orig = _mm_loadu_si128 ((const __m128i *)&state_ [ 4]) ;
+    __m128i     v2orig = _mm_loadu_si128 ((const __m128i *)&state_ [ 8]) ;
+    __m128i     v3orig = _mm_loadu_si128 ((const __m128i *)&state_ [12]) ;
+
+    __m128i     v0 = v0orig ;
+    __m128i     v1 = v1orig ;
+    __m128i     v2 = v2orig ;
+    __m128i     v3 = v3orig ;
+
+    for (int i = 0 ; i < NUM_ROUNDS ; ++i) {
+        //  3  2  1  0
+        //  7  6  5  4
+        // 11 10  9  8
+        // 15 14 13 12
+        v1 = _mm_shuffle_epi32 (v1, _MM_SHUFFLE (0, 3, 2, 1)) ;
+        v2 = _mm_shuffle_epi32 (v2, _MM_SHUFFLE (1, 0, 3, 2)) ;
+        v3 = _mm_shuffle_epi32 (v3, _MM_SHUFFLE (2, 1, 0, 3)) ;
+        //  3  2  1  0
+        //  4  7  6  5
+        //  9  8 11 10
+        // 14 13 12 15
+        TRANSPOSE_(v0, v1, v2, v3) ;
+        // 15 10  5  0
+        // 12 11  6  1
+        // 13  8  7  2
+        // 14  9  4  3
+        SWAP_(v1, v3) ;
+        // 15 10  5  0
+        // 14  9  4  3
+        // 13  8  7  2
+        // 12 11  6  1
+        v1 = _mm_shuffle_epi32 (v1, _MM_SHUFFLE (0, 3, 2, 1)) ;
+        v2 = _mm_shuffle_epi32 (v2, _MM_SHUFFLE (1, 0, 3, 2)) ;
+        v3 = _mm_shuffle_epi32 (v3, _MM_SHUFFLE (2, 1, 0, 3)) ;
+        // 15 10  5  0
+        //  3 14  9  4
+        //  7  2 13  8
+        // 11  6  1 12
+        v1 = _mm_xor_si128 (v1, vrot (_mm_add_epi32 (v0, v3),  7)) ;
+        v2 = _mm_xor_si128 (v2, vrot (_mm_add_epi32 (v1, v0),  9)) ;
+        v3 = _mm_xor_si128 (v3, vrot (_mm_add_epi32 (v2, v1), 13)) ;
+        v0 = _mm_xor_si128 (v0, vrot (_mm_add_epi32 (v3, v2), 18)) ;
+
+        v1 = _mm_shuffle_epi32 (v1, _MM_SHUFFLE (2, 1, 0, 3)) ;
+        v2 = _mm_shuffle_epi32 (v2, _MM_SHUFFLE (1, 0, 3, 2)) ;
+        v3 = _mm_shuffle_epi32 (v3, _MM_SHUFFLE (0, 3, 2, 1)) ;
+        // 15 10  5  0
+        // 14  9  4  3
+        // 13  8  7  2
+        // 12 11  6  1
+        v3 = _mm_xor_si128 (v3, vrot (_mm_add_epi32 (v0, v1),  7)) ;
+        v2 = _mm_xor_si128 (v2, vrot (_mm_add_epi32 (v3, v0),  9)) ;
+        v1 = _mm_xor_si128 (v1, vrot (_mm_add_epi32 (v2, v3), 13)) ;
+        v0 = _mm_xor_si128 (v0, vrot (_mm_add_epi32 (v1, v2), 18)) ;
+        TRANSPOSE_ (v0, v1, v2, v3) ;
+        //  1  2  3  0
+        //  6  7  4  5
+        // 11  8  9 10
+        // 12 13 14 15
+        v0 = _mm_shuffle_epi32 (v0, _MM_SHUFFLE (1, 2, 3, 0)) ;
+        v1 = _mm_shuffle_epi32 (v1, _MM_SHUFFLE (2, 3, 0, 1)) ;
+        v2 = _mm_shuffle_epi32 (v2, _MM_SHUFFLE (3, 0, 1, 2)) ;
+        v3 = _mm_shuffle_epi32 (v3, _MM_SHUFFLE (0, 1, 2, 3)) ;
+        //  3  2  1  0
+        //  7  6  5  4
+        // 11 10  9  8
+        // 15 14 13 12
+    }
+    v0 = _mm_add_epi32 (v0, v0orig) ;
+    v1 = _mm_add_epi32 (v1, v1orig) ;
+    v2 = _mm_add_epi32 (v2, v2orig) ;
+    v3 = _mm_add_epi32 (v3, v3orig) ;
+
+    hash_value_t result ;
+    {
+        _mm_storeu_si128 ((__m128i *)&result [ 0], v0) ;
+        _mm_storeu_si128 ((__m128i *)&result [16], v1) ;
+        _mm_storeu_si128 ((__m128i *)&result [32], v2) ;
+        _mm_storeu_si128 ((__m128i *)&result [48], v3) ;
+    }
+    return result ;
+#else
     uint32_t    x [STATE_SIZE] ;
 
     for (int i = 0 ; i < STATE_SIZE ; ++i) {
@@ -150,7 +271,7 @@ Salsa20::hash_value_t   Salsa20::State::ComputeHashValue () const {
         x[ 7] ^= rot (x[ 3] + x[15],  9) ;
         x[11] ^= rot (x[ 7] + x[ 3], 13) ;
         x[15] ^= rot (x[11] + x[ 7], 18) ;
-
+        //
         x[ 1] ^= rot (x[ 0] + x[ 3],  7) ;
         x[ 2] ^= rot (x[ 1] + x[ 0],  9) ;
         x[ 3] ^= rot (x[ 2] + x[ 1], 13) ;
@@ -171,6 +292,7 @@ Salsa20::hash_value_t   Salsa20::State::ComputeHashValue () const {
         x[14] ^= rot (x[13] + x[12], 13) ;
         x[15] ^= rot (x[14] + x[13], 18) ;
     }
+
     hash_value_t    result ;
     for (int i = 0 ; i < STATE_SIZE ; ++i) {
         uint32_t        v = x [i] + state_ [i] ;
@@ -181,6 +303,7 @@ Salsa20::hash_value_t   Salsa20::State::ComputeHashValue () const {
         result [4 * i + 3] = static_cast<unsigned char> (v >> 24) ;
     }
     return result ;
+#endif
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
