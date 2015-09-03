@@ -24,7 +24,11 @@ if (NOT ${CMAKE_CROSSCOMPILING})
         }
         ]=] TARGET_ALLOWS_UNALIGNED_ACCESS)
     set (HAVE_CONFIG_H 1)
-    CHECK_CXX_COMPILER_FLAG ("-msse3" HAVE_SSE3)
+    if (${WIN32})
+        CHECK_CXX_COMPILER_FLAG ("/arch:AVX" HAVE_SSE3)
+    else ()
+        CHECK_CXX_COMPILER_FLAG ("-msse3" HAVE_SSE3)
+    endif ()
 endif ()
 
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
