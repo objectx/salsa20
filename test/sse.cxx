@@ -1,3 +1,6 @@
+/*
+ * sse.cxx: Checks matrix manipulations (not for libsalsa20 test)
+ */
 #include <cstdint>
 #include <array>
 #include <catch/catch.hpp>
@@ -53,6 +56,7 @@ static bool check (__m128i a0, __m128i a1, __m128i a2, __m128i a3, const expect_
 
 
 TEST_CASE ("SSE test", "[sse]") {
+    // Performs matrix manipulation test for salsa20 implementation
     __m128i v0 = _mm_set_epi32 ( 3,  2,  1,  0) ;
     __m128i v1 = _mm_set_epi32 ( 7,  6,  5,  4) ;
     __m128i v2 = _mm_set_epi32 (11, 10,  9,  8) ;
@@ -116,4 +120,5 @@ TEST_CASE ("SSE test", "[sse]") {
     }}}}}}}
 }
 
-#endif
+#endif  /* HAVE_SSE3 */
+
