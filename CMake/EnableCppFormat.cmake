@@ -1,3 +1,8 @@
+#
+# Enable CppFormat
+#
+# Copyright (c) 2015 Masashi Fujita
+
 message ("Enable CppFormat")
 
 # Download Catch

@@ -31,7 +31,8 @@ if (NOT ${CMAKE_CROSSCOMPILING})
     endif ()
 endif ()
 
-configure_file (${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+configure_file (${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
+                ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 set (CONSTANT_TABLE ${CMAKE_CURRENT_BINARY_DIR}/salsa20_const.cxx)
 
@@ -40,15 +41,15 @@ set (SOURCE_FILES salsa20.cxx ${CONSTANT_TABLE})
 add_custom_command (
     OUTPUT ${CONSTANT_TABLE}
     COMMENT "Create obfuscated constant table"
-    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/constgen.py --obfuscate-mask 0xABADCAFE -o ${CONSTANT_TABLE}
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/constgen.py
+            --obfuscate-mask 0xABADCAFE -o ${CONSTANT_TABLE}
     DEPENDS constgen.py)
 
 set (TARGET_NAME "salsa20")
 
 add_library (${TARGET_NAME} ${SOURCE_FILES})
-    target_compile_features (${TARGET_NAME} PUBLIC cxx_auto_type cxx_alias_templates)
+    target_compile_features (${TARGET_NAME} PUBLIC cxx_auto_type cxx_alias_templates cxx_alignas)
     target_include_directories (${TARGET_NAME}
         PUBLIC ${CMAKE_SOURCE_DIR}/include
         PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR}/include)
     target_compile_definitions (${TARGET_NAME} PRIVATE $<$<BOOL:HAVE_CONFIG_H>:HAVE_CONFIG_H=1>)
-

@@ -1,5 +1,7 @@
 /*
  * config.h: Configurations
+ *
+ * Copyright (c) 2015 Masashi Fujita
  */
 #pragma once
 

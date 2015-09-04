@@ -1,3 +1,7 @@
+# Enables Catch
+#
+# Copyright (c) 2015 Masashi Fujita
+#
 message ("Enable Catch")
 # Download Catch
 if (NOT EXISTS "${CMAKE_BINARY_DIR}/include/catch")
