@@ -1,7 +1,7 @@
 ﻿/*
  * salsa20.cxx: The salsa20 cipher.
  *
- * AUTHOR(S): objectx
+ * Copyright (c) 2015 Masashi Fujita
  *
  */
 

@@ -2,7 +2,7 @@
 #
 # constgen.py: Generate constants for salsa20 cipher.
 #
-# AUTHOR(S): objectx
+# Copyright (c) 2015 Masashi Fujita
 #
 
 import sys, re, os.path, struct

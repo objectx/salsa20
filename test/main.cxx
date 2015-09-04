@@ -1,7 +1,7 @@
 /*
  * main.cxx:
  *
- * AUTHOR(S): objectx
+ * Copyright (c) 2015 Masashi Fujita
  *
  */
 

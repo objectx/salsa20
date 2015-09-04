@@ -1,9 +1,7 @@
 /*
  * commmon.h:
  *
- * AUTHOR(S): objectx
- *
- * $Id: common.h 2563 2007-11-22 12:26:29Z objectx $
+ * Copyright (c) 2015 Masashi Fujita
  */
 #ifndef common_h__4015aa40_c2da_4c47_85eb_36d0336c3839
 #define common_h__4015aa40_c2da_4c47_85eb_36d0336c3839  1

@@ -1,5 +1,7 @@
 /*
  * sse.cxx: Checks matrix manipulations (not for libsalsa20 test)
+ *
+ * Copyright (c) 2015 Masashi Fujita
  */
 #include <cstdint>
 #include <array>
