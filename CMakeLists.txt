@@ -17,8 +17,9 @@ setvar_default (CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 setvar_default (CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
 include (EnableCatch)
-include (EnableCppFormat)
 include (FindPythonInterp)
+
+add_subdirectory (ext/fmt)
 
 add_subdirectory (src)
 add_subdirectory (test)

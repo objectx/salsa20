@@ -12,7 +12,8 @@
 
 #define CATCH_CONFIG_MAIN
 #include <catch/catch.hpp>
-#include <cppformat/format.h>
+#include <fmt/format.h>
+#include <fmt/ostream.h>
 
 static uint32_t to_uint (int a, int b, int c, int d) {
     return (  (static_cast<unsigned int> (a & 0xFF) <<  0)
