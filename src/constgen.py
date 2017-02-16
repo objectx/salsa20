@@ -1,26 +1,23 @@
-#! python
+#! python3
 #
 # constgen.py: Generate constants for salsa20 cipher.
 #
-# Copyright (c) 2015 Masashi Fujita
+# Copyright (c) 2015-2017 Masashi Fujita
 #
 
 import sys, re, os.path, struct
 
 from optparse import OptionParser
 
-# --------------------------------------------------------------
-
 options = None
 
 def show (*args):
     if options.verbose:
         if len (args) < 1:
-            print >>sys.stderr, args
+            print (args, file = sys.stderr)
         else:
-            print >>sys.stderr, args [0] % args [1:]
+            print (args [0] % args [1:], file = sys.stderr)
 
-# --------------------------------------------------------------
 
 def convert (str):
     def obfuscator (x):
@@ -37,13 +34,13 @@ def convert (str):
             yield (values + ['\0', '\0', '\0']) [0:4]
 
     for v in combiner (str):
-        yield obfuscator ((ord (v [0]) <<  0) |
-                          (ord (v [1]) <<  8) |
-                          (ord (v [2]) << 16) |
-                          (ord (v [3]) << 24))
+        yield obfuscator ( (ord (v [0]) <<  0)
+                         | (ord (v [1]) <<  8)
+                         | (ord (v [2]) << 16)
+                         | (ord (v [3]) << 24))
 
 def generate (output, values, var):
-    output.write ("const uint32_t\t%s [] = {\n" % var)
+    output.write ("const std::array<uint32_t, 4>\t%s { {\n" % var)
     col = 0
     for x in values:
         if col == 0:
@@ -55,9 +52,7 @@ def generate (output, values, var):
             col = 0
     if col != 0:
         output.write ("\n")
-    output.write ("} ;\n\n")
-
-# --------------------------------------------------------------
+    output.write ("} } ;\n\n")
 
 def main ():
     global options
@@ -84,9 +79,6 @@ def main ():
         generate (output, convert ("expand 32-byte k"), "State::sigma_")
         generate (output, convert ("expand 16-byte k"), "State::tau_")
         output.write ("}\t/* End of namespace [Salsa20] */\n")
-        output.write ("/*")
-        output.write (" * [END of FILE]")
-        output.write (" */")
 
     if not options.output:
         gen (sys.stdout)

@@ -48,14 +48,8 @@ static inline __m128i   vrot (__m128i v, int cnt) {
 }
 
 #endif
-/* ------------------------------------------------------------------------ */
-
-Salsa20::State::State () {
-    ::memset (state_, 0, sizeof (state_)) ;
-}
 
 void    Salsa20::State::SetKey (const void *key, size_t key_size) {
-
     std::array<uint8_t, 32> K ;
 
     if (K.size () < key_size) {
@@ -124,8 +118,8 @@ uint64_t        Salsa20::State::GetSequenceNumber () const {
     auto    p = (const uint64_t *)(&state_ [8]) ;
     return *p ;
 #else
-    return (  (static_cast<uint64_t> (state_ [8]) <<  0)
-            | (static_cast<uint64_t> (state_ [9]) << 32)) ;
+    return ( (static_cast<uint64_t> (state_ [8]) <<  0)
+           | (static_cast<uint64_t> (state_ [9]) << 32)) ;
 #endif
 }
 
@@ -144,17 +138,12 @@ void    Salsa20::State::IncrementSequenceNumber () {
     auto    p = (uint64_t *)(&state_ [8]) ;
     ++(*p) ;
 #else
-    uint64_t tmp = (  (static_cast<uint64_t> (state_ [8]) <<  0)
-                    | (static_cast<uint64_t> (state_ [9]) << 32)) ;
+    uint64_t tmp = ( (static_cast<uint64_t> (state_ [8]) <<  0)
+                   | (static_cast<uint64_t> (state_ [9]) << 32)) ;
     ++tmp ;
     state_ [8] = static_cast<uint32_t> (tmp >>  0) ;
     state_ [9] = static_cast<uint32_t> (tmp >> 32) ;
 #endif
-}
-
-Salsa20::State &        Salsa20::State::Assign (const Salsa20::State &src) {
-    ::memcpy (state_, src.state_, sizeof (state_)) ;
-    return *this ;
 }
 
 #define SWAP_(a_, b_)   do {        \
@@ -175,7 +164,7 @@ Salsa20::State &        Salsa20::State::Assign (const Salsa20::State &src) {
     } while (false)
 
 Salsa20::hash_value_t   Salsa20::State::ComputeHashValue () const {
-    const int   STATE_SIZE = sizeof (state_) / sizeof (state_ [0]) ;
+    const int   STATE_SIZE = state_.size () ;
 
     const int   NUM_ROUNDS = 10 ;
 
