@@ -41,7 +41,7 @@ set (SOURCE_FILES salsa20.cxx ${CONSTANT_TABLE})
 add_custom_command (
     OUTPUT ${CONSTANT_TABLE}
     COMMENT "Create obfuscated constant table"
-    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/constgen.py
+    COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/constgen.py
             --obfuscate-mask 0xABADCAFE -o ${CONSTANT_TABLE}
     DEPENDS constgen.py)
 

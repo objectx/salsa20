@@ -14,7 +14,7 @@
 using expect_t = std::array<int32_t, 16> ;
 
 static bool check (__m128i a0, __m128i a1, __m128i a2, __m128i a3, const expect_t &expect) {
-    uint32_t alignas (32)   actual [4 * 4] ;
+    alignas (32) uint32_t   actual [4 * 4] ;
 
     _mm_store_si128 ((__m128i *)&actual [ 0], a0) ;
     _mm_store_si128 ((__m128i *)&actual [ 4], a1) ;
@@ -30,7 +30,7 @@ static bool check (__m128i a0, __m128i a1, __m128i a2, __m128i a3, const expect_
 }
 
 #define CHK_(V_, e0_, e1_, e2_, e3_)    do {            \
-    uint32_t alignas (32)   a_ [4] ;                    \
+    alignas (32) uint32_t   a_ [4] ;                    \
     _mm_store_si128 ((__m128i *)&a_ [0], (V_)) ;        \
     REQUIRE (a_ [0] == (e0_)) ;                         \
     REQUIRE (a_ [1] == (e1_)) ;                         \

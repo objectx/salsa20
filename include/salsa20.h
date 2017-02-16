@@ -1,7 +1,7 @@
 ﻿/*
  * salsa20.h: The salsa20 cipher
  *
- * Copyright (c) 2015 Masashi Fujita
+ * Copyright (c) 2015-2017 Masashi Fujita
  *
  */
 #pragma once
@@ -20,18 +20,23 @@ namespace Salsa20 {
     class State {
     private:
         static const uint32_t   obfuscateMask_ ;
-        static const uint32_t   sigma_ [4] ;
-        static const uint32_t   tau_ [4] ;
+        static const std::array<uint32_t, 4>    sigma_ ;
+        static const std::array<uint32_t, 4>    tau_ ;
     private:
-        uint32_t        state_ [16] ;
+        std::array<uint32_t, 16>    state_ ;
     public:
-        State () ;
-        State (const State &src) {
-            Assign (src) ;
+        State () {
+            state_.fill (0) ;
         }
+
+        State (const State &src) {
+            state_ = src.state_ ;
+        }
+
         State (const void *key, size_t key_size) {
             SetKey (key, key_size) ;
         }
+
         State (const void *key, size_t key_size, uint64_t iv) {
             SetKey (key, key_size) ;
             SetInitialVector (iv) ;
@@ -63,7 +68,11 @@ namespace Salsa20 {
          */
         void    IncrementSequenceNumber () ;
 
-        State & Assign (const State &src) ;
+        State & Assign (const State &src) {
+            state_ = src.state_ ;
+            return *this ;
+        }
+
         State & operator = (const State &src) {
             return Assign (src) ;
         }
