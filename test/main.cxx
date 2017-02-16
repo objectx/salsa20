@@ -1,7 +1,7 @@
 /*
  * main.cxx:
  *
- * Copyright (c) 2015 Masashi Fujita
+ * Copyright (c) 2015-2017 Masashi Fujita
  *
  */
 
@@ -15,47 +15,46 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
-static uint32_t to_uint (int a, int b, int c, int d) {
-    return (  (static_cast<unsigned int> (a & 0xFF) <<  0)
-            | (static_cast<unsigned int> (b & 0xFF) <<  8)
-            | (static_cast<unsigned int> (c & 0xFF) << 16)
-            | (static_cast<unsigned int> (d & 0xFF) << 24)) ;
-}
-
-static uint64_t to_uint (int a, int b, int c, int d, int e, int f, int g, int h) {
-    return (  (static_cast<uint64_t> (a & 0xFF) <<  0)
-            | (static_cast<uint64_t> (b & 0xFF) <<  8)
-            | (static_cast<uint64_t> (c & 0xFF) << 16)
-            | (static_cast<uint64_t> (d & 0xFF) << 24)
-            | (static_cast<uint64_t> (e & 0xFF) << 32)
-            | (static_cast<uint64_t> (f & 0xFF) << 40)
-            | (static_cast<uint64_t> (g & 0xFF) << 48)
-            | (static_cast<uint64_t> (h & 0xFF) << 56)) ;
-}
-
-
 namespace {
-    bool operator == (const Salsa20::hash_value_t &a, const Salsa20::hash_value_t &b) {
+    bool    operator== ( const Salsa20::hash_value_t &a
+                       , const Salsa20::hash_value_t &b) {
         for (int_fast32_t i = 0 ; i < a.size () ; ++i) {
-            if (a [i] != b [i]) {
-                return false ;
+            if (a[i] != b[i]) {
+                return false;
             }
         }
-        return true ;
+        return true;
     }
 
-}
-
-std::ostream &  operator << (std::ostream &out, const Salsa20::hash_value_t &value) {
-    for (size_t i = 0 ; i < value.size () ; ++i) {
-        fmt::print (out, " {0:3d}", value [i]) ;
+    uint32_t    to_uint (int a, int b, int c, int d) {
+        return ( (static_cast<unsigned int> (a & 0xFFu) <<  0)
+               | (static_cast<unsigned int> (b & 0xFFu) <<  8)
+               | (static_cast<unsigned int> (c & 0xFFu) << 16)
+               | (static_cast<unsigned int> (d & 0xFFu) << 24));
     }
-    return out ;
+
+    uint64_t    to_uint (int a, int b, int c, int d, int e, int f, int g, int h) {
+        return ( (static_cast<uint64_t> (a & 0xFFu) <<  0)
+               | (static_cast<uint64_t> (b & 0xFFu) <<  8)
+               | (static_cast<uint64_t> (c & 0xFFu) << 16)
+               | (static_cast<uint64_t> (d & 0xFFu) << 24)
+               | (static_cast<uint64_t> (e & 0xFFu) << 32)
+               | (static_cast<uint64_t> (f & 0xFFu) << 40)
+               | (static_cast<uint64_t> (g & 0xFFu) << 48)
+               | (static_cast<uint64_t> (h & 0xFFu) << 56));
+    }
+
+    std::ostream &  operator<< (std::ostream &out, const Salsa20::hash_value_t &value) {
+        for (size_t i = 0 ; i < value.size () ; ++i) {
+            fmt::print (out, " {0:3d}", value[i]);
+        }
+        return out;
+    }
 }
 
 namespace Catch {
     template <> struct StringMaker<Salsa20::hash_value_t> {
-        static std::string convert (Salsa20::hash_value_t const& value ) {
+        static std::string convert (Salsa20::hash_value_t const&value) {
             std::stringstream s ;
             for (size_t i = 0 ; i < value.size () ; ++i) {
                 fmt::print (s, " {0:3d}", value [i]) ;
