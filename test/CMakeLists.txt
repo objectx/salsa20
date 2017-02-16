@@ -15,9 +15,12 @@ endif ()
 
 set (SOURCE_FILES main.cxx md5.cxx sse.cxx)
 
-set (TARGET_NAME "test-salsa20")
-add_executable (${TARGET_NAME} ${SOURCE_FILES})
-    target_link_libraries      (${TARGET_NAME} PRIVATE salsa20 fmt)
-    target_compile_definitions (${TARGET_NAME} PRIVATE "-DNOMINMAX")
-    target_compile_features    (${TARGET_NAME} PRIVATE cxx_auto_type cxx_uniform_initialization cxx_alignas)
-    target_include_directories (${TARGET_NAME} PRIVATE ${CMAKE_BINARY_DIR}/include)
+include_directories (${CMAKE_BINARY_DIR}/include)
+function (make_target TARGET_)
+    add_executable (${TARGET_} ${SOURCE_FILES})
+    target_link_libraries      (${TARGET_} PRIVATE salsa20 fmt)
+    target_compile_definitions (${TARGET_} PRIVATE "-DNOMINMAX")
+    target_compile_features    (${TARGET_} PRIVATE cxx_auto_type cxx_uniform_initialization cxx_alignas)
+endfunction ()
+
+make_target (test_salsa20)
