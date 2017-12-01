@@ -5,7 +5,7 @@
  */
 #include <cstdint>
 #include <array>
-#include <catch/catch.hpp>
+#include <catch.hpp>
 
 #ifdef HAVE_SSE3
 

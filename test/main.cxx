@@ -11,7 +11,7 @@
 #include <array>
 
 #define CATCH_CONFIG_MAIN
-#include <catch/catch.hpp>
+#include <catch.hpp>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
@@ -50,18 +50,6 @@ namespace {
         }
         return out;
     }
-}
-
-namespace Catch {
-    template <> struct StringMaker<Salsa20::hash_value_t> {
-        static std::string convert (Salsa20::hash_value_t const&value) {
-            std::stringstream s ;
-            for (size_t i = 0 ; i < value.size () ; ++i) {
-                fmt::print (s, " {0:3d}", value [i]) ;
-            }
-            return s.str () ;
-        }
-    };
 }
 
 TEST_CASE ("Simple salsa20 test", "[simple]") {

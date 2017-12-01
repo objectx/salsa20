@@ -1,5 +1,5 @@
 
-cmake_minimum_required (VERSION 3.3)
+cmake_minimum_required (VERSION 3.9)
 
 include (TestBigEndian)
 include (CheckCXXSourceRuns)
@@ -48,8 +48,8 @@ add_custom_command (
 set (TARGET_NAME "salsa20")
 
 add_library (${TARGET_NAME} ${SOURCE_FILES})
-    target_compile_features (${TARGET_NAME} PUBLIC cxx_auto_type cxx_alias_templates cxx_alignas)
+    target_compile_features (${TARGET_NAME} PUBLIC cxx_std_14)
     target_include_directories (${TARGET_NAME}
-        PUBLIC ${CMAKE_SOURCE_DIR}/include
+        PUBLIC ${SALSA20_SOURCE_DIR}/include
         PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_BINARY_DIR}/include)
     target_compile_definitions (${TARGET_NAME} PRIVATE $<$<BOOL:HAVE_CONFIG_H>:HAVE_CONFIG_H=1>)
